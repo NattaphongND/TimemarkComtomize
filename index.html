@@ -1,0 +1,1926 @@
+<!-- Chosen Palette: Slate & Timemark Amber (Slate-950, Slate-900, Amber-400 / #F2A200, White) -->
+<!-- Application Structure Plan:
+     1. Top Navigation & Header: Preset manager dropdown, quick save layout, image loader, current time stamper, and high-def PNG export button.
+     2. Interactive Workspace (Left Column):
+        - Live interactive photo viewport supporting touch/drag position adjustments.
+        - Exact visual replica of Timemark stamp elements with full dynamic customization:
+          a) Tag & Time Pill: Outer frame border-radius slider, inner tag box border-radius slider, text fonts/sizes/weights, and independent opacity.
+          b) Unified Date & Location Block: Vertical amber bar width/colors, fonts/sizes/weights, and independent opacity.
+          c) Verified Badge: Shield checkmark colors, font family/sizes, and independent opacity.
+          d) Watermark: Split "Time" + "mark" title, subtitle font, sizes, weight, and independent opacity.
+          e) Vertical Side Serial Code: Right margin rotated text, font family, size, weight, and independent opacity.
+          f) Dynamic Custom Overlay Layers: Extra uploaded logos/icons with drag, scale, rotation (0-360deg), and opacity.
+     3. Granular Fine-Tuning Panel (Right Column):
+        - Preset Saver/Loader (LocalStorage + JSON Export/Import).
+        - Custom Image/Logo Overlay Manager (Upload, scale, 360-degree rotation, transparency).
+        - Point-by-point text, font size, font family, font weight, border radius, color, opacity, and position sliders for EVERY element.
+     4. High-Res Native Canvas HD Export Engine:
+        - Accurately renders dynamic inner/outer corner radii, diagonal security line textures, rotated overlays, individual opacities, fonts, sizes, drop shadows, and custom extra logos onto export canvas.
+-->
+<!-- Visualization & Content Choices:
+     - Pure Canvas Visuals: No SVG used, pure HTML5 Canvas for shield icon, hatch patterns, custom logo rotation rendering, and high-resolution export engine.
+-->
+<!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Timemark Customizer Pro - ปรับแต่งตรายางประทับเวลาตรงตามต้นฉบับ 100%</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,400;0,600;0,700;1,400&family=Kanit:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Mitr:wght@400;600&family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Roboto+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Sarabun:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Prompt', sans-serif; }
+        .font-mono-code { font-family: 'Roboto Mono', monospace; }
+        
+        /* Timemark crisp stamp text shadow */
+        .stamp-shadow {
+            text-shadow: 0px 1.5px 3.5px rgba(0, 0, 0, 0.95), 0px 0px 2px rgba(0, 0, 0, 0.9);
+        }
+        
+        /* Interactive overlay elements visual feedback */
+        .draggable-item {
+            cursor: move;
+            user-select: none;
+            touch-action: none;
+            transition: outline 0.12s ease, box-shadow 0.12s ease;
+        }
+        .draggable-item:hover {
+            outline: 2px dashed #f2a200;
+            outline-offset: 3px;
+        }
+        .draggable-item.is-dragging {
+            outline: 2px solid #f2a200;
+            outline-offset: 4px;
+            z-index: 40 !important;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.6);
+        }
+
+        /* Diagonal security lines background for time pill */
+        .security-hatch-bg {
+            background-color: #ffffff;
+            background-image: repeating-linear-gradient(
+                -45deg,
+                transparent,
+                transparent 3.5px,
+                rgba(180, 205, 235, 0.45) 3.5px,
+                rgba(180, 205, 235, 0.45) 5px
+            );
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #090d16; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #334155; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between antialiased selection:bg-amber-400 selection:text-slate-950">
+
+    <!-- Header Navigation -->
+    <header class="bg-slate-900/95 border-b border-slate-800 backdrop-blur sticky top-0 z-50 px-3 sm:px-5 py-2.5 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-300 text-slate-950 font-black flex items-center justify-center text-xl shadow-lg shadow-amber-500/20">
+                T
+            </div>
+            <div>
+                <h1 class="font-bold text-sm sm:text-base text-amber-400 leading-tight">Timemark Customizer Pro</h1>
+                <p class="text-[11px] text-slate-400 hidden sm:block">ปรับดีไซน์ ความโค้งมน ฟอนต์ หมุนรูป และโปร่งแสงได้อย่างอิสระ 100%</p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-2">
+            <button onclick="triggerQuickUpload()" class="bg-amber-400/10 hover:bg-amber-400/20 text-amber-300 border border-amber-400/30 px-2.5 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1 cursor-pointer">
+                <span>📷 เปลี่ยนรูปภาพ</span>
+            </button>
+            <button onclick="applyCurrentTimestamp()" class="bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-400/20 px-2.5 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1 cursor-pointer">
+                <span>🕒 ดึงเวลาปัจจุบัน</span>
+            </button>
+            <button onclick="exportHighResImage()" class="bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-bold px-3.5 py-1.5 rounded-xl text-xs sm:text-sm flex items-center space-x-1.5 transition shadow-lg shadow-amber-500/20 active:scale-95 cursor-pointer">
+                <span>📥 ดาวน์โหลดรูปภาพ</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Workspace -->
+    <main class="max-w-7xl w-full mx-auto p-3 sm:p-5 flex-grow grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        
+        <!-- Preview Column (Left) -->
+        <div class="lg:col-span-6 xl:col-span-7 flex flex-col items-center bg-slate-900/80 p-3 sm:p-5 rounded-2xl border border-slate-800/80 shadow-2xl">
+            
+            <!-- Viewport Toolbar Header -->
+            <div class="w-full flex justify-between items-center mb-3 px-1 text-xs text-slate-400">
+                <span class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span class="font-medium text-slate-200">พื้นที่ทำงาน (แตะลากข้อความ/โลโก้บนภาพได้อิสระ)</span>
+                </span>
+                <span id="resolutionBadge" class="bg-slate-800 px-2 py-0.5 rounded text-[11px] text-amber-300/90 font-mono">
+                    1080 x 1440 px
+                </span>
+            </div>
+
+            <!-- Viewport Canvas Area -->
+            <div id="viewportContainer" class="relative w-full max-w-[460px] bg-black rounded-xl overflow-hidden border border-slate-800 shadow-2xl select-none" style="touch-action: none;">
+                
+                <!-- Main Background Photo -->
+                <img id="sourceImage" src="photo_2026-09-10_11-54-18.jpg" onerror="handleImageError(this)" alt="Stamp Source" class="w-full h-auto object-cover block pointer-events-none">
+
+                <!-- Interactive Overlays Container -->
+                <div id="overlayWrapper" class="absolute inset-0 w-full h-full overflow-hidden">
+                    
+                    <!-- 1. Tag & Time Capsule Badge (Rounded yellow tag inside white capsule with blue hatch texture) -->
+                    <div id="dragTagTime" class="draggable-item absolute top-[75%] left-[4%] z-10 transition-opacity duration-75">
+                        <div id="pillFrame" class="security-hatch-bg p-[3px] rounded-xl shadow-2xl inline-flex items-center border border-white/80 overflow-hidden" style="border-radius: 12px;">
+                            <!-- Inner Rounded Yellow Tag Box -->
+                            <div id="tagBox" class="bg-[#f2a200] text-slate-950 font-bold px-2.5 py-1 rounded-lg flex items-center justify-center leading-none" style="border-radius: 8px;">
+                                <span id="tagTextVal" class="text-xs sm:text-sm">เช็กอิน</span>
+                            </div>
+                            <!-- Time Box with dark navy text -->
+                            <div id="timeBox" class="bg-transparent text-[#0b192e] font-extrabold px-2.5 py-0.5 flex items-center justify-center tracking-tight leading-none">
+                                <span id="timeTextVal" class="text-sm sm:text-base">12:09</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. Date & Location Block with Unified Continuous Vertical Bar -->
+                    <div id="dragDateLoc" class="draggable-item absolute top-[83.5%] left-[4%] flex items-stretch space-x-2.5 z-10 transition-opacity duration-75">
+                        <!-- Continuous Vertical Amber Line -->
+                        <div id="unifiedBar" class="w-[3.5px] bg-[#f2a200] rounded-full shadow self-stretch my-0.5"></div>
+                        
+                        <div class="flex flex-col justify-center space-y-0.5">
+                            <!-- Date Row -->
+                            <span id="dateVal" class="text-white text-xs sm:text-sm font-semibold tracking-wide stamp-shadow leading-tight block">
+                                พฤ., 10/09/2026
+                            </span>
+                            <!-- Location Row -->
+                            <span id="locationVal" class="text-white text-xs sm:text-sm font-normal tracking-wide stamp-shadow leading-tight block">
+                                Banteay Meanchey
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- 3. Verified Badge (Shield + Text) -->
+                    <div id="dragVerify" class="draggable-item absolute top-[92%] left-[4%] flex items-center space-x-1.5 text-xs text-slate-100 z-10 transition-opacity duration-75">
+                        <div class="relative w-4 h-4 flex items-center justify-center">
+                            <canvas id="shieldCanvas" width="32" height="36" class="w-4 h-4 block"></canvas>
+                        </div>
+                        <span id="verifyVal" class="stamp-shadow text-[11px] sm:text-xs font-normal">
+                            Timemark รับรองเวลาที่แท้จริง
+                        </span>
+                    </div>
+
+                    <!-- 4. Bottom Right Watermark (Time in Amber, mark in White) -->
+                    <div id="dragWatermark" class="draggable-item absolute top-[89%] right-[4%] text-right leading-tight z-10 transition-opacity duration-75">
+                        <div class="text-xs sm:text-sm tracking-wider stamp-shadow">
+                            <span id="wmTitleTime" class="text-[#f2a200] font-bold">Time</span><span id="wmTitleMark" class="text-white font-bold">mark</span>
+                        </div>
+                        <div id="wmSubtitleVal" class="text-[10px] sm:text-xs text-white stamp-shadow font-normal">ภาพจริง 100%</div>
+                    </div>
+
+                    <!-- 5. Right Edge Vertical Serial Code -->
+                    <div id="dragCode" class="draggable-item absolute top-[36%] right-[-70px] origin-center -rotate-90 text-[9px] sm:text-[10px] tracking-widest text-white/80 font-mono-code stamp-shadow whitespace-nowrap z-10 transition-opacity duration-75">
+                        © <span id="codeVal">2P14YAH3CDBEMH</span> Timemark Verified
+                    </div>
+
+                    <!-- 6. Custom Uploaded Overlay Images Container -->
+                    <div id="customOverlaysContainer" class="absolute inset-0 pointer-events-none"></div>
+
+                </div>
+            </div>
+
+            <!-- Quick Action Bar under Viewport -->
+            <div class="w-full flex flex-col sm:flex-row justify-between items-center mt-3 text-[11px] text-slate-400 px-1 gap-2">
+                <button onclick="triggerQuickUpload()" class="w-full sm:w-auto bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold px-3 py-1.5 rounded-lg transition flex items-center justify-center space-x-1 cursor-pointer">
+                    <span>📷 เลือกรูปถ่ายของคุณจากคอม/โทรศัพท์</span>
+                </button>
+                <button onclick="resetPositions()" class="text-amber-400 hover:underline cursor-pointer">🔄 รีเซ็ตตำแหน่งดั้งเดิม</button>
+            </div>
+
+        </div>
+
+        <!-- Control Panel Column (Right - Granular Customization) -->
+        <div class="lg:col-span-6 xl:col-span-5 bg-slate-900 border border-slate-800/80 rounded-2xl p-4 sm:p-5 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto">
+            
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h2 class="text-sm font-bold text-amber-400 flex items-center space-x-1.5">
+                    <span>🎛️</span>
+                    <span>ปรับแต่งตัวหนังสือ ฟอนต์ ความมน หมุนรูป และโปร่งแสง</span>
+                </h2>
+            </div>
+
+            <!-- PRESET SAVER / LOAD MARKING LOCATIONS -->
+            <div class="bg-amber-400/10 border border-amber-400/30 rounded-xl p-3 space-y-2.5">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                        <span>💾</span> บันทึก / โหลด เทมเพลตตำแหน่ง Marking
+                    </span>
+                    <span class="text-[10px] text-amber-400/80">บันทึกตำแหน่งไว้ใช้ครั้งถัดไป</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <select id="presetSelect" onchange="loadSelectedPreset()" class="w-full bg-slate-900 border border-amber-400/40 rounded px-2.5 py-1.5 text-xs text-amber-200 focus:outline-none">
+                        <option value="default">-- เทมเพลตมาตรฐาน (Default) --</option>
+                    </select>
+                    <button onclick="saveCurrentPreset()" class="bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold px-3 py-1.5 rounded text-xs transition cursor-pointer">
+                        💾 บันทึกตำแหน่งปัจจุบัน
+                    </button>
+                </div>
+
+                <div class="flex items-center justify-between pt-1 border-t border-amber-400/20 text-[11px]">
+                    <button onclick="exportPresetJSON()" class="text-slate-300 hover:text-amber-300 underline cursor-pointer">
+                        📥 ส่งออกไฟล์ตั้งค่า (JSON)
+                    </button>
+                    <button onclick="triggerImportPresetJSON()" class="text-slate-300 hover:text-amber-300 underline cursor-pointer">
+                        📤 นำเข้าไฟล์ตั้งค่า (JSON)
+                    </button>
+                    <button onclick="deleteSelectedPreset()" class="text-red-400 hover:text-red-300 underline cursor-pointer">
+                        🗑️ ลบเทมเพลตนี้
+                    </button>
+                </div>
+                <input type="file" id="presetFileInput" accept=".json" class="hidden" onchange="importPresetJSON(event)">
+            </div>
+
+            <!-- INSERT EXTRA CUSTOM LOGO / ICON MODULE (WITH ROTATION & TRANSPARENCY) -->
+            <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 space-y-3">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                        <span>🖼️</span> แทรกรูปภาพ / โลโก้ / สติ๊กเกอร์เพิ่มเติม (ปรับหมุนได้)
+                    </span>
+                    <button onclick="triggerCustomLogoUpload()" class="bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-400/30 px-2.5 py-1 rounded text-[11px] font-medium cursor-pointer">
+                        + แทรกรูปภาพ
+                    </button>
+                    <input type="file" id="customLogoInput" accept="image/*" class="hidden" onchange="handleCustomLogoUpload(event)">
+                </div>
+
+                <div id="customLogosList" class="space-y-2 text-xs text-slate-400">
+                    <p class="text-[11px] text-slate-500 italic">ยังไม่มีรูปภาพแทรกเพิ่มเติม (กด "+ แทรกรูปภาพ" เพื่อเพิ่มโลโก้/ไอคอนบนภาพ)</p>
+                </div>
+            </div>
+
+            <!-- SECTION 1: TAG & TIME (CORNER RADIUS & OPACITY CONTROLS ADDED) -->
+            <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 space-y-3">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                        1. ป้าย Tag & เวลา (การ์ดขาว + ลายเส้นเฉียง)
+                    </span>
+                    <label class="text-[11px] text-slate-400 flex items-center space-x-1">
+                        <input type="checkbox" id="chkTagTime" checked class="accent-amber-400">
+                        <span>แสดง</span>
+                    </label>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-[11px] text-slate-400 mb-1">ข้อความ Tag</label>
+                        <input type="text" id="inTag" value="เช็กอิน" class="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs focus:border-amber-400 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] text-slate-400 mb-1">ข้อความ เวลา</label>
+                        <input type="text" id="inTime" value="12:09" class="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs focus:border-amber-400 focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- Corner Radius Controls (Outer & Inner Box) -->
+                <div class="grid grid-cols-2 gap-2 text-[11px]">
+                    <div>
+                        <div class="flex justify-between text-slate-400 mb-0.5">
+                            <span>ความมนกรอบนอก (Pill)</span>
+                            <span id="sizePillRadiusVal" class="text-amber-400 font-mono">12px</span>
+                        </div>
+                        <input type="range" id="sizePillRadius" min="0" max="30" value="12" class="w-full accent-amber-400">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-slate-400 mb-0.5">
+                            <span>ความมนกล่อง Tag</span>
+                            <span id="sizeTagRadiusVal" class="text-amber-400 font-mono">8px</span>
+                        </div>
+                        <input type="range" id="sizeTagRadius" min="0" max="20" value="8" class="w-full accent-amber-400">
+                    </div>
+                </div>
+
+                <!-- Font Family Selectors -->
+                <div class="grid grid-cols-2 gap-2 text-[11px]">
+                    <div>
+                        <label class="block text-slate-400 mb-1">ฟอนต์ Tag</label>
+                        <select id="fontTag" class="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-xs text-amber-300">
+                            <option value="Prompt" selected>Prompt (มาตรฐาน)</option>
+                            <option value="Kanit">Kanit</option>
+                            <option value="Sarabun">Sarabun</option>
+                            <option value="Chakra Petch">Chakra Petch</option>
+                            <option value="Mitr">Mitr</option>
+                            <option value="Roboto Mono">Roboto Mono</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">ฟอนต์ เวลา</label>
+                        <select id="fontTime" class="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-xs text-amber-300">
+                            <option value="Prompt" selected>Prompt (มาตรฐาน)</option>
+                            <option value="Kanit">Kanit</option>
+                            <option value="Sarabun">Sarabun</option>
+                            <option value="Chakra Petch">Chakra Petch</option>
+                            <option value="Roboto Mono">Roboto Mono</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Font Size Sliders -->
+                <div class="grid grid-cols-2 gap-2 text-[11px]">
+                    <div>
+                        <div class="flex justify-between text-slate-400 mb-0.5">
+                            <span>ขนาด Tag</span>
+                            <span id="sizeTagVal" class="text-amber-400 font-mono">13px</span>
+                        </div>
+                        <input type="range" id="sizeTag" min="9" max="28" value="13" class="w-full accent-amber-400">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-slate-400 mb-0.5">
+                            <span>ขนาด เวลา</span>
+                            <span id="sizeTimeVal" class="text-amber-400 font-mono">16px</span>
+                        </div>
+                        <input type="range" id="sizeTime" min="10" max="36" value="16" class="w-full accent-amber-400">
+                    </div>
+                </div>
+
+                <!-- Font Weight Selectors -->
+                <div class="grid grid-cols-2 gap-2 text-[11px]">
+                    <div>
+                        <label class="block text-slate-400 mb-1">ความหนา Tag</label>
+                        <select id="weightTag" class="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-xs text-amber-300">
+                            <option value="400">ปกติ (400)</option>
+                            <option value="600">กึ่งตัวหนา (600)</option>
+                            <option value="700" selected>ตัวหนา (700)</option>
+                            <option value="800">หนาพิเศษ (800)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">ความหนา เวลา</label>
+                        <select id="weightTime" class="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-xs text-amber-300">
+                            <option value="400">ปกติ (400)</option>
+                            <option value="600">กึ่งตัวหนา (600)</option>
+                            <option value="700">ตัวหนา (700)</option>
+                            <option value="800" selected>หนาพิเศษ (800)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Section Specific Opacity -->
+                <div class="text-[11px]">
+                    <div class="flex justify-between text-slate-400 mb-0.5">
+                        <span>ความโปร่งแสงเฉพาะบล็อกนี้</span>
+                        <span id="opacityTagTimeVal" class="text-amber-400 font-mono">100%</span>
+                    </div>
+                    <input type="range" id="opacityTagTime" min="0" max="100" value="100" class="w-full accent-amber-400">
+                </div>
+
+                <div class="grid grid-cols-3 gap-2 text-[11px]">
+                    <div>
+                        <label class="block text-slate-400 mb-1">สีพื้นกล่อง Tag</label>
+                        <div class="flex items-center space-x-1 bg-slate-900 p-1.5 rounded border border-slate-800">
+                            <input type="color" id="colTagBg" value="#f2a200" class="w-5 h-5 rounded border-0 bg-transparent cursor-pointer">
+                            <span id="hexTagBg" class="font-mono text-[10px] text-slate-300">#F2A200</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">สีตัวหนังสือ Tag</label>
+                        <div class="flex items-center space-x-1 bg-slate-900 p-1.5 rounded border border-slate-800">
+                            <input type="color" id="colTagText" value="#020617" class="w-5 h-5 rounded border-0 bg-transparent cursor-pointer">
+                            <span id="hexTagText" class="font-mono text-[10px] text-slate-300">#020617</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">สีตัวหนังสือเวลา</label>
+                        <div class="flex items-center space-x-1 bg-slate-900 p-1.5 rounded border border-slate-800">
+                            <input type="color" id="colTimeText" value="#0b192e" class="w-5 h-5 rounded border-0 bg-transparent cursor-pointer">
+                            <span id="hexTimeText" class="font-mono text-[10px] text-slate-300">#0B192E</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 2: UNIFIED DATE & LOCATION BLOCK -->
+            <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 space-y-3">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                        2. บล็อกวันที่ & สถานที่ (เส้นส้มแนวยาว)
+                    </span>
+                    <label class="text-[11px] text-slate-400 flex items-center space-x-1">
+                        <input type="checkbox" id="chkDateLoc" checked class="accent-amber-400">
+                        <span>แสดง</span>
+                    </label>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-[11px] text-slate-400 mb-1">ข้อความวันที่</label>
+                        <input type="text" id="inDate" value="พฤ., 10/09/2026" class="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs focus:border-amber-400 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] text-slate-400 mb-1">ข้อความสถานที่</label>
+                        <input type="text" id="inLocation" value="Banteay Meanchey" class="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs focus:border-amber-400 focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- Font Family Selectors -->
+                <div class="grid grid-cols-2 gap-2 text-[11px]">
+                    <div>
+                        <label class="block text-slate-400 mb-1">ฟอนต์ วันที่</label>
+                        <select id="fontDate" class="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-xs text-amber-300">
+                            <option value="Prompt" selected>Prompt (มาตรฐาน)</option>
+                            <option value="Kanit">Kanit</option>
+                            <option value="Sarabun">Sarabun</option>
+                            <option value="Chakra Petch">Chakra Petch</option>
+                            <option value="Roboto Mono">Roboto Mono</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">ฟอนต์ สถานที่</label>
+                        <select id="fontLoc" class="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-xs text-amber-300">
+                            <option value="Prompt" selected>Prompt (มาตรฐาน)</option>
+                            <option value="Kanit">Kanit</option>
+                            <option value="Sarabun">Sarabun</option>
+                            <option value="Chakra Petch">Chakra Petch</option>
+                            <option value="Roboto Mono">Roboto Mono</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Font Size Sliders -->
+                <div class="grid grid-cols-2 gap-2 text-[11px]">
+                    <div>
+                        <div class="flex justify-between text-slate-400 mb-0.5">
+                            <span>ขนาด วันที่</span>
+                            <span id="sizeDateVal" class="text-amber-400 font-mono">13px</span>
+                        </div>
+                        <input type="range" id="sizeDate" min="9" max="28" value="13" class="w-full accent-amber-400">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-slate-400 mb-0.5">
+                            <span>ขนาด สถานที่</span>
+                            <span id="sizeLocVal" class="text-amber-400 font-mono">13px</span>
+                        </div>
+                        <input type="range" id="sizeLoc" min="9" max="28" value="13" class="w-full accent-amber-400">
+                    </div>
+                </div>
+
+                <!-- Font Weight Selectors -->
+                <div class="grid grid-cols-2 gap-2 text-[11px]">
+                    <div>
+                        <label class="block text-slate-400 mb-1">ความหนา วันที่</label>
+                        <select id="weightDate" class="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-xs text-amber-300">
+                            <option value="400">ปกติ (400)</option>
+                            <option value="500">ปานกลาง (500)</option>
+                            <option value="600" selected>กึ่งตัวหนา (600)</option>
+                            <option value="700">ตัวหนา (700)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">ความหนา สถานที่</label>
+                        <select id="weightLoc" class="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-xs text-amber-300">
+                            <option value="400" selected>ปกติ (400)</option>
+                            <option value="500">ปานกลาง (500)</option>
+                            <option value="600">กึ่งตัวหนา (600)</option>
+                            <option value="700">ตัวหนา (700)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Section Specific Opacity -->
+                <div class="text-[11px]">
+                    <div class="flex justify-between text-slate-400 mb-0.5">
+                        <span>ความโปร่งแสงเฉพาะบล็อกนี้</span>
+                        <span id="opacityDateLocVal" class="text-amber-400 font-mono">100%</span>
+                    </div>
+                    <input type="range" id="opacityDateLoc" min="0" max="100" value="100" class="w-full accent-amber-400">
+                </div>
+
+                <div class="grid grid-cols-3 gap-2 text-[11px]">
+                    <div>
+                        <label class="block text-slate-400 mb-1">สีเส้นพาดแนวยาว</label>
+                        <div class="flex items-center space-x-1 bg-slate-900 p-1.5 rounded border border-slate-800">
+                            <input type="color" id="colUnifiedBar" value="#f2a200" class="w-5 h-5 rounded border-0 bg-transparent cursor-pointer">
+                            <span id="hexUnifiedBar" class="font-mono text-[10px] text-slate-300">#F2A200</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">สีตัวหนังสือวันที่</label>
+                        <div class="flex items-center space-x-1 bg-slate-900 p-1.5 rounded border border-slate-800">
+                            <input type="color" id="colDateText" value="#ffffff" class="w-5 h-5 rounded border-0 bg-transparent cursor-pointer">
+                            <span id="hexDateText" class="font-mono text-[10px] text-slate-300">#FFF</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">สีตัวหนังสือสถานที่</label>
+                        <div class="flex items-center space-x-1 bg-slate-900 p-1.5 rounded border border-slate-800">
+                            <input type="color" id="colLocText" value="#ffffff" class="w-5 h-5 rounded border-0 bg-transparent cursor-pointer">
+                            <span id="hexLocText" class="font-mono text-[10px] text-slate-300">#FFF</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 3: VERIFIED BADGE -->
+            <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 space-y-3">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                        3. ตรารับรองความถูกต้อง (Verified Badge)
+                    </span>
+                    <label class="text-[11px] text-slate-400 flex items-center space-x-1">
+                        <input type="checkbox" id="chkVerify" checked class="accent-amber-400">
+                        <span>แสดง</span>
+                    </label>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-[11px] text-slate-400 mb-1">ข้อความรับรอง</label>
+                        <input type="text" id="inVerify" value="Timemark รับรองเวลาที่แท้จริง" class="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs focus:border-amber-400 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] text-slate-400 mb-1">ฟอนต์ข้อความ</label>
+                        <select id="fontVerify" class="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-xs text-amber-300">
+                            <option value="Prompt" selected>Prompt (มาตรฐาน)</option>
+                            <option value="Kanit">Kanit</option>
+                            <option value="Sarabun">Sarabun</option>
+                            <option value="Chakra Petch">Chakra Petch</option>
+                            <option value="Roboto Mono">Roboto Mono</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 text-[11px]">
+                    <div>
+                        <div class="flex justify-between text-slate-400 mb-0.5">
+                            <span>ขนาดตัวหนังสือ</span>
+                            <span id="sizeVerifyVal" class="text-amber-400 font-mono">11px</span>
+                        </div>
+                        <input type="range" id="sizeVerify" min="8" max="22" value="11" class="w-full accent-amber-400">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">ความหนาตัวอักษร</label>
+                        <select id="weightVerify" class="w-full bg-slate-900 border border-slate-800 rounded px-1.5 py-1 text-xs text-amber-300">
+                            <option value="400" selected>ปกติ (400)</option>
+                            <option value="500">ปานกลาง (500)</option>
+                            <option value="600">กึ่งตัวหนา (600)</option>
+                            <option value="700">ตัวหนา (700)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Section Specific Opacity -->
+                <div class="text-[11px]">
+                    <div class="flex justify-between text-slate-400 mb-0.5">
+                        <span>ความโปร่งแสงเฉพาะบล็อกนี้</span>
+                        <span id="opacityVerifyVal" class="text-amber-400 font-mono">100%</span>
+                    </div>
+                    <input type="range" id="opacityVerify" min="0" max="100" value="100" class="w-full accent-amber-400">
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 text-[11px]">
+                    <div>
+                        <label class="block text-slate-400 mb-1">สีติ๊กถูกในโล่</label>
+                        <div class="flex items-center space-x-1.5 bg-slate-900 p-1.5 rounded border border-slate-800">
+                            <input type="color" id="colShieldCheck" value="#f2a200" class="w-5 h-5 rounded border-0 bg-transparent cursor-pointer">
+                            <span id="hexShieldCheck" class="font-mono text-slate-300">#F2A200</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">สีข้อความรับรอง</label>
+                        <div class="flex items-center space-x-1.5 bg-slate-900 p-1.5 rounded border border-slate-800">
+                            <input type="color" id="colVerifyText" value="#ffffff" class="w-5 h-5 rounded border-0 bg-transparent cursor-pointer">
+                            <span id="hexVerifyText" class="font-mono text-slate-300">#FFFFFF</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 4: WATERMARK (FONT & OPACITY CONTROLS ADDED) -->
+            <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 space-y-3">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                        4. ลายน้ำมุมขวา (แยกคำว่า Time และ mark)
+                    </span>
+                    <label class="text-[11px] text-slate-400 flex items-center space-x-1">
+                        <input type="checkbox" id="chkWatermark" checked class="accent-amber-400">
+                        <span>แสดง</span>
+                    </label>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-[11px] text-slate-400 mb-1">คำแรก (Time)</label>
+                        <input type="text" id="inWmTime" value="Time" class="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs focus:border-amber-400 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] text-slate-400 mb-1">คำหลัง (mark)</label>
+                        <input type="text" id="inWmMark" value="mark" class="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs focus:border-amber-400 focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- Font Selectors for Watermark Title & Subtitle -->
+                <div class="grid grid-cols-2 gap-2 text-[11px]">
+                    <div>
+                        <label class="block text-slate-400 mb-1">ฟอนต์ Timemark</label>
+                        <select id="fontWmTitle" class="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-xs text-amber-300">
+                            <option value="Prompt" selected>Prompt (มาตรฐาน)</option>
+                            <option value="Kanit">Kanit</option>
+                            <option value="Sarabun">Sarabun</option>
+                            <option value="Chakra Petch">Chakra Petch</option>
+                            <option value="Roboto Mono">Roboto Mono</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">ฟอนต์ บรรทัดล่าง</label>
+                        <select id="fontWmSub" class="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-xs text-amber-300">
+                            <option value="Prompt" selected>Prompt (มาตรฐาน)</option>
+                            <option value="Kanit">Kanit</option>
+                            <option value="Sarabun">Sarabun</option>
+                            <option value="Chakra Petch">Chakra Petch</option>
+                            <option value="Mitr">Mitr</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Font Sizes -->
+                <div class="grid grid-cols-2 gap-2 text-[11px]">
+                    <div>
+                        <div class="flex justify-between text-slate-400 mb-0.5">
+                            <span>ขนาด Timemark</span>
+                            <span id="sizeWmTitleVal" class="text-amber-400 font-mono">13px</span>
+                        </div>
+                        <input type="range" id="sizeWmTitle" min="9" max="28" value="13" class="w-full accent-amber-400">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-slate-400 mb-0.5">
+                            <span>ขนาด บรรทัดล่าง</span>
+                            <span id="sizeWmSubVal" class="text-amber-400 font-mono">11px</span>
+                        </div>
+                        <input type="range" id="sizeWmSub" min="8" max="22" value="11" class="w-full accent-amber-400">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 text-[11px]">
+                    <div>
+                        <label class="block text-slate-400 mb-1">สี "Time"</label>
+                        <div class="flex items-center space-x-1.5 bg-slate-900 p-1.5 rounded border border-slate-800">
+                            <input type="color" id="colWmTime" value="#f2a200" class="w-5 h-5 rounded border-0 bg-transparent cursor-pointer">
+                            <span id="hexWmTime" class="font-mono text-slate-300">#F2A200</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">สี "mark"</label>
+                        <div class="flex items-center space-x-1.5 bg-slate-900 p-1.5 rounded border border-slate-800">
+                            <input type="color" id="colWmMark" value="#ffffff" class="w-5 h-5 rounded border-0 bg-transparent cursor-pointer">
+                            <span id="hexWmMark" class="font-mono text-slate-300">#FFFFFF</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
+                    <div class="sm:col-span-2">
+                        <label class="block text-[11px] text-slate-400 mb-1">บรรทัดล่าง (ภาพจริง 100%)</label>
+                        <input type="text" id="inWmSubtitle" value="ภาพจริง 100%" class="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs focus:border-amber-400 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] text-slate-400 mb-1">ความหนา</label>
+                        <select id="weightWmSub" class="w-full bg-slate-900 border border-slate-800 rounded px-1.5 py-1 text-xs text-amber-300">
+                            <option value="400" selected>ปกติ (400)</option>
+                            <option value="500">ปานกลาง (500)</option>
+                            <option value="600">กึ่งตัวหนา (600)</option>
+                            <option value="700">ตัวหนา (700)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Section Specific Opacity -->
+                <div class="text-[11px]">
+                    <div class="flex justify-between text-slate-400 mb-0.5">
+                        <span>ความโปร่งแสงเฉพาะบล็อกนี้</span>
+                        <span id="opacityWatermarkVal" class="text-amber-400 font-mono">100%</span>
+                    </div>
+                    <input type="range" id="opacityWatermark" min="0" max="100" value="100" class="w-full accent-amber-400">
+                </div>
+            </div>
+
+            <!-- SECTION 5: VERTICAL SERIAL CODE (FONT, SIZE & OPACITY ADDED) -->
+            <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 space-y-3">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                        5. รหัสแนวตั้งขอบขวา (Side Serial Code)
+                    </span>
+                    <label class="text-[11px] text-slate-400 flex items-center space-x-1">
+                        <input type="checkbox" id="chkCode" checked class="accent-amber-400">
+                        <span>แสดง</span>
+                    </label>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2 items-center">
+                    <div class="col-span-2">
+                        <label class="block text-[11px] text-slate-400 mb-1">รหัสรับรอง (Serial)</label>
+                        <input type="text" id="inCode" value="2P14YAH3CDBEMH" class="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs uppercase font-mono-code focus:border-amber-400 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] text-slate-400 mb-1">สีข้อความ</label>
+                        <div class="flex items-center space-x-1 bg-slate-900 p-1.5 rounded border border-slate-800">
+                            <input type="color" id="colCodeText" value="#ffffff" class="w-5 h-5 rounded border-0 bg-transparent cursor-pointer">
+                            <span id="hexCodeText" class="font-mono text-[10px] text-slate-300">#FFF</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Font Family, Size & Weight for Code -->
+                <div class="grid grid-cols-3 gap-2 text-[11px]">
+                    <div>
+                        <label class="block text-slate-400 mb-1">ฟอนต์รหัส</label>
+                        <select id="fontCode" class="w-full bg-slate-900 border border-slate-800 rounded px-1.5 py-1 text-xs text-amber-300">
+                            <option value="Roboto Mono" selected>Roboto Mono</option>
+                            <option value="Prompt">Prompt</option>
+                            <option value="Kanit">Kanit</option>
+                            <option value="Chakra Petch">Chakra Petch</option>
+                        </select>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-slate-400 mb-0.5">
+                            <span>ขนาด</span>
+                            <span id="sizeCodeVal" class="text-amber-400 font-mono">10px</span>
+                        </div>
+                        <input type="range" id="sizeCode" min="7" max="18" value="10" class="w-full accent-amber-400">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">ความหนา</label>
+                        <select id="weightCode" class="w-full bg-slate-900 border border-slate-800 rounded px-1.5 py-1 text-xs text-amber-300">
+                            <option value="400" selected>ปกติ (400)</option>
+                            <option value="500">ปานกลาง (500)</option>
+                            <option value="700">ตัวหนา (700)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Section Specific Opacity -->
+                <div class="text-[11px]">
+                    <div class="flex justify-between text-slate-400 mb-0.5">
+                        <span>ความโปร่งแสงเฉพาะบล็อกนี้</span>
+                        <span id="opacityCodeVal" class="text-amber-400 font-mono">100%</span>
+                    </div>
+                    <input type="range" id="opacityCode" min="0" max="100" value="100" class="w-full accent-amber-400">
+                </div>
+            </div>
+
+            <!-- SECTION 6: GLOBAL SCALING & OPACITY -->
+            <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 space-y-3">
+                <span class="text-xs font-bold text-slate-200 block">6. ขนาดและความโปร่งแสงรวมทั้งหน้าภาพ (Global Scale & Opacity)</span>
+
+                <div>
+                    <div class="flex justify-between text-xs text-slate-400 mb-1">
+                        <span>ขนาดย่อ/ขยายรวม</span>
+                        <span id="valScale" class="text-amber-400 font-mono">100%</span>
+                    </div>
+                    <input type="range" id="sliderScale" min="60" max="150" value="100" class="w-full accent-amber-400">
+                </div>
+
+                <div>
+                    <div class="flex justify-between text-xs text-slate-400 mb-1">
+                        <span>ความโปร่งแสงรวมทั้งภาพ</span>
+                        <span id="valOpacity" class="text-amber-400 font-mono">100%</span>
+                    </div>
+                    <input type="range" id="sliderOpacity" min="30" max="100" value="100" class="w-full accent-amber-400">
+                </div>
+            </div>
+
+            <!-- Download Action Button -->
+            <button onclick="exportHighResImage()" class="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-bold py-3 rounded-xl text-sm transition shadow-xl shadow-amber-500/15 flex items-center justify-center space-x-2 active:scale-98 cursor-pointer">
+                <span>📥 ดาวน์โหลดรูปภาพผลลัพธ์ (ความละเอียดสูง HD)</span>
+            </button>
+
+        </div>
+
+    </main>
+
+    <!-- Hidden Export Canvas & File Inputs -->
+    <canvas id="exportCanvas" class="hidden"></canvas>
+    <input type="file" id="fileInput" accept="image/*" class="hidden">
+
+    <!-- Footer -->
+    <footer class="bg-slate-900/60 border-t border-slate-800 py-3 text-center text-xs text-slate-500">
+        Timemark Watermark Customizer &copy; 2026 - ระบบประทับเวลาและแต่งรูปภาพอิสระ
+    </footer>
+
+    <!-- Interactive Logic Script -->
+    <script>
+        // Custom Overlay Logos Array
+        let customOverlays = [];
+
+        // DOM Elements
+        const sourceImg = document.getElementById('sourceImage');
+        const viewport = document.getElementById('viewportContainer');
+        const overlayWrapper = document.getElementById('overlayWrapper');
+        const customOverlaysContainer = document.getElementById('customOverlaysContainer');
+        const resolutionBadge = document.getElementById('resolutionBadge');
+        const fileInput = document.getElementById('fileInput');
+
+        // Text Inputs
+        const inTag = document.getElementById('inTag');
+        const inTime = document.getElementById('inTime');
+        const inDate = document.getElementById('inDate');
+        const inLocation = document.getElementById('inLocation');
+        const inVerify = document.getElementById('inVerify');
+        const inWmTime = document.getElementById('inWmTime');
+        const inWmMark = document.getElementById('inWmMark');
+        const inWmSubtitle = document.getElementById('inWmSubtitle');
+        const inCode = document.getElementById('inCode');
+
+        // Display Elements
+        const pillFrame = document.getElementById('pillFrame');
+        const tagBox = document.getElementById('tagBox');
+        const timeBox = document.getElementById('timeBox');
+        const tagTextVal = document.getElementById('tagTextVal');
+        const timeTextVal = document.getElementById('timeTextVal');
+        const unifiedBar = document.getElementById('unifiedBar');
+        const dateVal = document.getElementById('dateVal');
+        const locationVal = document.getElementById('locationVal');
+        const verifyVal = document.getElementById('verifyVal');
+        const wmTitleTime = document.getElementById('wmTitleTime');
+        const wmTitleMark = document.getElementById('wmTitleMark');
+        const wmSubtitleVal = document.getElementById('wmSubtitleVal');
+        const codeVal = document.getElementById('codeVal');
+
+        // Colors
+        const colTagBg = document.getElementById('colTagBg');
+        const colTagText = document.getElementById('colTagText');
+        const colTimeText = document.getElementById('colTimeText');
+        const colUnifiedBar = document.getElementById('colUnifiedBar');
+        const colDateText = document.getElementById('colDateText');
+        const colLocText = document.getElementById('colLocText');
+        const colShieldCheck = document.getElementById('colShieldCheck');
+        const colVerifyText = document.getElementById('colVerifyText');
+        const colWmTime = document.getElementById('colWmTime');
+        const colWmMark = document.getElementById('colWmMark');
+        const colCodeText = document.getElementById('colCodeText');
+
+        // Font Weights
+        const weightTag = document.getElementById('weightTag');
+        const weightTime = document.getElementById('weightTime');
+        const weightDate = document.getElementById('weightDate');
+        const weightLoc = document.getElementById('weightLoc');
+        const weightVerify = document.getElementById('weightVerify');
+        const weightWmSub = document.getElementById('weightWmSub');
+        const weightCode = document.getElementById('weightCode');
+
+        // Font Sizes & Values
+        const sizeTag = document.getElementById('sizeTag');
+        const sizeTime = document.getElementById('sizeTime');
+        const sizeDate = document.getElementById('sizeDate');
+        const sizeLoc = document.getElementById('sizeLoc');
+        const sizeVerify = document.getElementById('sizeVerify');
+        const sizeWmTitle = document.getElementById('sizeWmTitle');
+        const sizeWmSub = document.getElementById('sizeWmSub');
+        const sizeCode = document.getElementById('sizeCode');
+
+        // Border Radii (Outer Pill & Inner Tag Box)
+        const sizePillRadius = document.getElementById('sizePillRadius');
+        const sizeTagRadius = document.getElementById('sizeTagRadius');
+
+        // Font Families
+        const fontTag = document.getElementById('fontTag');
+        const fontTime = document.getElementById('fontTime');
+        const fontDate = document.getElementById('fontDate');
+        const fontLoc = document.getElementById('fontLoc');
+        const fontVerify = document.getElementById('fontVerify');
+        const fontWmTitle = document.getElementById('fontWmTitle');
+        const fontWmSub = document.getElementById('fontWmSub');
+        const fontCode = document.getElementById('fontCode');
+
+        // Section Specific Opacities
+        const opacityTagTime = document.getElementById('opacityTagTime');
+        const opacityDateLoc = document.getElementById('opacityDateLoc');
+        const opacityVerify = document.getElementById('opacityVerify');
+        const opacityWatermark = document.getElementById('opacityWatermark');
+        const opacityCode = document.getElementById('opacityCode');
+
+        // Draggables
+        const dragTagTime = document.getElementById('dragTagTime');
+        const dragDateLoc = document.getElementById('dragDateLoc');
+        const dragVerify = document.getElementById('dragVerify');
+        const dragWatermark = document.getElementById('dragWatermark');
+        const dragCode = document.getElementById('dragCode');
+
+        const draggables = [dragTagTime, dragDateLoc, dragVerify, dragWatermark, dragCode];
+
+        // Default Positions
+        const defaultPositions = {
+            dragTagTime: { top: 75, left: 4 },
+            dragDateLoc: { top: 83.5, left: 4 },
+            dragVerify: { top: 92, left: 4 },
+            dragWatermark: { top: 89, right: 4 },
+            dragCode: { top: 36, right: -70 }
+        };
+
+        // Fallback Sample Canvas Generator
+        function generateSampleBackground() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1080;
+            canvas.height = 1440;
+            const ctx = canvas.getContext('2d');
+
+            const grad = ctx.createLinearGradient(0, 0, 1080, 1440);
+            grad.addColorStop(0, '#111827');
+            grad.addColorStop(0.5, '#1f2937');
+            grad.addColorStop(1, '#0b0f17');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 1080, 1440);
+
+            // Silhouette
+            ctx.fillStyle = '#374151';
+            ctx.beginPath();
+            ctx.arc(540, 600, 220, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.ellipse(540, 1200, 420, 340, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#9ca3af';
+            ctx.font = 'bold 30px Prompt, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('รูปภาพตัวอย่าง (กด "เปลี่ยนรูปภาพ" เพื่อเลือกรูปของคุณ)', 540, 240);
+
+            return canvas.toDataURL('image/jpeg', 0.9);
+        }
+
+        function handleImageError(imgElem) {
+            imgElem.onerror = null;
+            imgElem.src = generateSampleBackground();
+            updateImageResolutionBadge();
+        }
+
+        function triggerQuickUpload() { fileInput.click(); }
+
+        // Render Pure Canvas Shield Icon
+        function renderShieldIcon() {
+            const canvas = document.getElementById('shieldCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+
+            ctx.clearRect(0, 0, w, h);
+
+            // Dark Shield Fill
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
+            ctx.beginPath();
+            ctx.moveTo(w * 0.5, 2);
+            ctx.lineTo(w * 0.9, h * 0.22);
+            ctx.lineTo(w * 0.9, h * 0.55);
+            ctx.bezierCurveTo(w * 0.9, h * 0.82, w * 0.5, h * 0.98, w * 0.5, h * 0.98);
+            ctx.bezierCurveTo(w * 0.5, h * 0.98, w * 0.1, h * 0.82, w * 0.1, h * 0.55);
+            ctx.lineTo(w * 0.1, h * 0.22);
+            ctx.closePath();
+            ctx.fill();
+
+            // Shield Stroke
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Checkmark
+            ctx.strokeStyle = colShieldCheck.value || '#f2a200';
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            ctx.moveTo(w * 0.32, h * 0.52);
+            ctx.lineTo(w * 0.46, h * 0.66);
+            ctx.lineTo(w * 0.70, h * 0.38);
+            ctx.stroke();
+        }
+
+        // Live Text Inputs
+        inTag.addEventListener('input', (e) => tagTextVal.innerText = e.target.value || 'เช็กอิน');
+        inTime.addEventListener('input', (e) => timeTextVal.innerText = e.target.value || '12:09');
+        inDate.addEventListener('input', (e) => dateVal.innerText = e.target.value || '');
+        inLocation.addEventListener('input', (e) => locationVal.innerText = e.target.value || '');
+        inVerify.addEventListener('input', (e) => verifyVal.innerText = e.target.value || '');
+        inWmTime.addEventListener('input', (e) => wmTitleTime.innerText = e.target.value || 'Time');
+        inWmMark.addEventListener('input', (e) => wmTitleMark.innerText = e.target.value || 'mark');
+        inWmSubtitle.addEventListener('input', (e) => wmSubtitleVal.innerText = e.target.value || '');
+        inCode.addEventListener('input', (e) => codeVal.innerText = e.target.value.toUpperCase() || '');
+
+        // Live Font Size Handlers
+        function bindFontSize(sliderElem, targetElem, spanId) {
+            sliderElem.addEventListener('input', (e) => {
+                const val = e.target.value;
+                document.getElementById(spanId).innerText = val + 'px';
+                if (targetElem) targetElem.style.fontSize = val + 'px';
+            });
+        }
+
+        bindFontSize(sizeTag, tagTextVal, 'sizeTagVal');
+        bindFontSize(sizeTime, timeTextVal, 'sizeTimeVal');
+        bindFontSize(sizeDate, dateVal, 'sizeDateVal');
+        bindFontSize(sizeLoc, locationVal, 'sizeLocVal');
+        bindFontSize(sizeVerify, verifyVal, 'sizeVerifyVal');
+        bindFontSize(sizeWmSub, wmSubtitleVal, 'sizeWmSubVal');
+
+        sizeWmTitle.addEventListener('input', (e) => {
+            const val = e.target.value;
+            document.getElementById('sizeWmTitleVal').innerText = val + 'px';
+            wmTitleTime.style.fontSize = val + 'px';
+            wmTitleMark.style.fontSize = val + 'px';
+        });
+
+        sizeCode.addEventListener('input', (e) => {
+            const val = e.target.value;
+            document.getElementById('sizeCodeVal').innerText = val + 'px';
+            dragCode.style.fontSize = val + 'px';
+        });
+
+        // Live Border Radius Handlers
+        sizePillRadius.addEventListener('input', (e) => {
+            const val = e.target.value;
+            document.getElementById('sizePillRadiusVal').innerText = val + 'px';
+            pillFrame.style.borderRadius = val + 'px';
+        });
+
+        sizeTagRadius.addEventListener('input', (e) => {
+            const val = e.target.value;
+            document.getElementById('sizeTagRadiusVal').innerText = val + 'px';
+            tagBox.style.borderRadius = val + 'px';
+        });
+
+        // Live Font Family Handlers
+        fontTag.addEventListener('change', (e) => tagTextVal.style.fontFamily = e.target.value);
+        fontTime.addEventListener('change', (e) => timeTextVal.style.fontFamily = e.target.value);
+        fontDate.addEventListener('change', (e) => dateVal.style.fontFamily = e.target.value);
+        fontLoc.addEventListener('change', (e) => locationVal.style.fontFamily = e.target.value);
+        fontVerify.addEventListener('change', (e) => verifyVal.style.fontFamily = e.target.value);
+        fontWmTitle.addEventListener('change', (e) => {
+            wmTitleTime.style.fontFamily = e.target.value;
+            wmTitleMark.style.fontFamily = e.target.value;
+        });
+        fontWmSub.addEventListener('change', (e) => wmSubtitleVal.style.fontFamily = e.target.value);
+        fontCode.addEventListener('change', (e) => dragCode.style.fontFamily = e.target.value);
+
+        // Live Font Weight Bindings
+        weightTag.addEventListener('change', (e) => tagTextVal.style.fontWeight = e.target.value);
+        weightTime.addEventListener('change', (e) => timeTextVal.style.fontWeight = e.target.value);
+        weightDate.addEventListener('change', (e) => dateVal.style.fontWeight = e.target.value);
+        weightLoc.addEventListener('change', (e) => locationVal.style.fontWeight = e.target.value);
+        weightVerify.addEventListener('change', (e) => verifyVal.style.fontWeight = e.target.value);
+        weightWmSub.addEventListener('change', (e) => wmSubtitleVal.style.fontWeight = e.target.value);
+        weightCode.addEventListener('change', (e) => dragCode.style.fontWeight = e.target.value);
+
+        // Live Section Specific Opacity Handlers
+        function bindOpacity(sliderElem, targetElem, spanId) {
+            sliderElem.addEventListener('input', (e) => {
+                const val = e.target.value;
+                document.getElementById(spanId).innerText = val + '%';
+                if (targetElem) targetElem.style.opacity = val / 100;
+            });
+        }
+
+        bindOpacity(opacityTagTime, dragTagTime, 'opacityTagTimeVal');
+        bindOpacity(opacityDateLoc, dragDateLoc, 'opacityDateLocVal');
+        bindOpacity(opacityVerify, dragVerify, 'opacityVerifyVal');
+        bindOpacity(opacityWatermark, dragWatermark, 'opacityWatermarkVal');
+        bindOpacity(opacityCode, dragCode, 'opacityCodeVal');
+
+        // Color Binding Handlers
+        function bindColor(inputElem, targetElem, cssProp, hexSpanId, callback) {
+            inputElem.addEventListener('input', (e) => {
+                const val = e.target.value;
+                if (targetElem) targetElem.style[cssProp] = val;
+                if (hexSpanId) document.getElementById(hexSpanId).innerText = val.toUpperCase();
+                if (callback) callback();
+            });
+        }
+
+        bindColor(colTagBg, tagBox, 'backgroundColor', 'hexTagBg');
+        bindColor(colTagText, tagTextVal, 'color', 'hexTagText');
+        bindColor(colTimeText, timeTextVal, 'color', 'hexTimeText');
+        bindColor(colUnifiedBar, unifiedBar, 'backgroundColor', 'hexUnifiedBar');
+        bindColor(colDateText, dateVal, 'color', 'hexDateText');
+        bindColor(colLocText, locationVal, 'color', 'hexLocText');
+        bindColor(colShieldCheck, null, null, 'hexShieldCheck', renderShieldIcon);
+        bindColor(colVerifyText, verifyVal, 'color', 'hexVerifyText');
+        bindColor(colWmTime, wmTitleTime, 'color', 'hexWmTime');
+        bindColor(colWmMark, wmTitleMark, 'color', 'hexWmMark');
+        bindColor(colCodeText, dragCode, 'color', 'hexCodeText');
+
+        // Global Scale & Opacity
+        const sliderScale = document.getElementById('sliderScale');
+        const sliderOpacity = document.getElementById('sliderOpacity');
+
+        sliderScale.addEventListener('input', (e) => {
+            const val = e.target.value;
+            document.getElementById('valScale').innerText = val + '%';
+            overlayWrapper.style.transform = `scale(${val / 100})`;
+            overlayWrapper.style.transformOrigin = 'bottom left';
+        });
+
+        sliderOpacity.addEventListener('input', (e) => {
+            const val = e.target.value;
+            document.getElementById('valOpacity').innerText = val + '%';
+            overlayWrapper.style.opacity = val / 100;
+        });
+
+        // Visibility Toggles
+        document.getElementById('chkTagTime').addEventListener('change', (e) => dragTagTime.style.display = e.target.checked ? 'block' : 'none');
+        document.getElementById('chkDateLoc').addEventListener('change', (e) => dragDateLoc.style.display = e.target.checked ? 'flex' : 'none');
+        document.getElementById('chkVerify').addEventListener('change', (e) => dragVerify.style.display = e.target.checked ? 'flex' : 'none');
+        document.getElementById('chkWatermark').addEventListener('change', (e) => dragWatermark.style.display = e.target.checked ? 'block' : 'none');
+        document.getElementById('chkCode').addEventListener('change', (e) => dragCode.style.display = e.target.checked ? 'block' : 'none');
+
+        // Drag Engine
+        let activeElement = null;
+        let startX = 0, startY = 0;
+        let initialElemLeft = 0, initialElemTop = 0;
+
+        function makeDraggable(elem) {
+            const onPointerDown = (e) => {
+                activeElement = elem;
+                elem.classList.add('is-dragging');
+                
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+                startX = clientX;
+                startY = clientY;
+
+                const rect = elem.getBoundingClientRect();
+                const parentRect = viewport.getBoundingClientRect();
+
+                initialElemLeft = rect.left - parentRect.left;
+                initialElemTop = rect.top - parentRect.top;
+
+                document.addEventListener('mousemove', onPointerMove);
+                document.addEventListener('mouseup', onPointerUp);
+                document.addEventListener('touchmove', onPointerMove, { passive: false });
+                document.addEventListener('touchend', onPointerUp);
+            };
+
+            elem.addEventListener('mousedown', onPointerDown);
+            elem.addEventListener('touchstart', onPointerDown, { passive: false });
+        }
+
+        function onPointerMove(e) {
+            if (!activeElement) return;
+            if (e.preventDefault) e.preventDefault();
+
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+            const deltaX = clientX - startX;
+            const deltaY = clientY - startY;
+
+            activeElement.style.right = 'auto';
+            activeElement.style.left = `${initialElemLeft + deltaX}px`;
+            activeElement.style.top = `${initialElemTop + deltaY}px`;
+        }
+
+        function onPointerUp() {
+            if (activeElement) {
+                activeElement.classList.remove('is-dragging');
+                activeElement = null;
+            }
+            document.removeEventListener('mousemove', onPointerMove);
+            document.removeEventListener('mouseup', onPointerUp);
+            document.removeEventListener('touchmove', onPointerMove);
+            document.removeEventListener('touchend', onPointerUp);
+        }
+
+        draggables.forEach(makeDraggable);
+
+        function resetPositions() {
+            Object.keys(defaultPositions).forEach(id => {
+                const elem = document.getElementById(id);
+                if (elem) {
+                    const pos = defaultPositions[id];
+                    elem.style.top = `${pos.top}%`;
+                    if (pos.left !== undefined) {
+                        elem.style.left = `${pos.left}%`;
+                        elem.style.right = 'auto';
+                    } else if (pos.right !== undefined) {
+                        elem.style.right = `${pos.right}%`;
+                        elem.style.left = 'auto';
+                        if (id === 'dragCode') elem.style.right = '-70px';
+                    }
+                }
+            });
+            sliderScale.value = 100;
+            overlayWrapper.style.transform = 'scale(1)';
+            document.getElementById('valScale').innerText = '100%';
+
+            opacityTagTime.value = 100; dragTagTime.style.opacity = 1; document.getElementById('opacityTagTimeVal').innerText = '100%';
+            opacityDateLoc.value = 100; dragDateLoc.style.opacity = 1; document.getElementById('opacityDateLocVal').innerText = '100%';
+            opacityVerify.value = 100; dragVerify.style.opacity = 1; document.getElementById('opacityVerifyVal').innerText = '100%';
+            opacityWatermark.value = 100; dragWatermark.style.opacity = 1; document.getElementById('opacityWatermarkVal').innerText = '100%';
+            opacityCode.value = 100; dragCode.style.opacity = 1; document.getElementById('opacityCodeVal').innerText = '100%';
+        }
+
+        function applyCurrentTimestamp() {
+            const now = new Date();
+            const days = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
+            const dayName = days[now.getDay()];
+            const dd = String(now.getDate()).padStart(2, '0');
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const yyyy = now.getFullYear();
+
+            const hh = String(now.getHours()).padStart(2, '0');
+            const min = String(now.getMinutes()).padStart(2, '0');
+
+            inTime.value = `${hh}:${min}`;
+            timeTextVal.innerText = `${hh}:${min}`;
+
+            inDate.value = `${dayName}, ${dd}/${mm}/${yyyy}`;
+            dateVal.innerText = `${dayName}, ${dd}/${mm}/${yyyy}`;
+        }
+
+        // --- PRESET SAVER / LOADER MODULE (LOCALSTORAGE + JSON) ---
+        function getLayoutConfig() {
+            const positions = {};
+            draggables.forEach(elem => {
+                positions[elem.id] = {
+                    top: elem.style.top,
+                    left: elem.style.left,
+                    right: elem.style.right
+                };
+            });
+
+            return {
+                positions: positions,
+                scale: sliderScale.value,
+                opacity: sliderOpacity.value,
+                radii: {
+                    pill: sizePillRadius.value,
+                    tag: sizeTagRadius.value
+                },
+                sectionOpacities: {
+                    tagTime: opacityTagTime.value,
+                    dateLoc: opacityDateLoc.value,
+                    verify: opacityVerify.value,
+                    watermark: opacityWatermark.value,
+                    code: opacityCode.value
+                },
+                fonts: {
+                    tag: fontTag.value,
+                    time: fontTime.value,
+                    date: fontDate.value,
+                    loc: fontLoc.value,
+                    verify: fontVerify.value,
+                    wmTitle: fontWmTitle.value,
+                    wmSub: fontWmSub.value,
+                    code: fontCode.value
+                },
+                sizes: {
+                    tag: sizeTag.value,
+                    time: sizeTime.value,
+                    date: sizeDate.value,
+                    loc: sizeLoc.value,
+                    verify: sizeVerify.value,
+                    wmTitle: sizeWmTitle.value,
+                    wmSub: sizeWmSub.value,
+                    code: sizeCode.value
+                },
+                weights: {
+                    tag: weightTag.value,
+                    time: weightTime.value,
+                    date: weightDate.value,
+                    loc: weightLoc.value,
+                    verify: weightVerify.value,
+                    wmSub: weightWmSub.value,
+                    code: weightCode.value
+                },
+                colors: {
+                    tagBg: colTagBg.value,
+                    tagText: colTagText.value,
+                    timeText: colTimeText.value,
+                    unifiedBar: colUnifiedBar.value,
+                    dateText: colDateText.value,
+                    locText: colLocText.value,
+                    shieldCheck: colShieldCheck.value,
+                    verifyText: colVerifyText.value,
+                    wmTime: colWmTime.value,
+                    wmMark: colWmMark.value,
+                    codeText: colCodeText.value
+                }
+            };
+        }
+
+        function applyLayoutConfig(config) {
+            if (!config) return;
+            
+            // Apply Positions
+            if (config.positions) {
+                Object.keys(config.positions).forEach(id => {
+                    const elem = document.getElementById(id);
+                    if (elem && config.positions[id]) {
+                        elem.style.top = config.positions[id].top || '';
+                        elem.style.left = config.positions[id].left || 'auto';
+                        elem.style.right = config.positions[id].right || 'auto';
+                    }
+                });
+            }
+
+            // Apply Scale & Global Opacity
+            if (config.scale) {
+                sliderScale.value = config.scale;
+                document.getElementById('valScale').innerText = config.scale + '%';
+                overlayWrapper.style.transform = `scale(${config.scale / 100})`;
+            }
+            if (config.opacity) {
+                sliderOpacity.value = config.opacity;
+                document.getElementById('valOpacity').innerText = config.opacity + '%';
+                overlayWrapper.style.opacity = config.opacity / 100;
+            }
+
+            // Apply Corner Radii
+            if (config.radii) {
+                if (config.radii.pill) { sizePillRadius.value = config.radii.pill; pillFrame.style.borderRadius = config.radii.pill + 'px'; document.getElementById('sizePillRadiusVal').innerText = config.radii.pill + 'px'; }
+                if (config.radii.tag) { sizeTagRadius.value = config.radii.tag; tagBox.style.borderRadius = config.radii.tag + 'px'; document.getElementById('sizeTagRadiusVal').innerText = config.radii.tag + 'px'; }
+            }
+
+            // Apply Section Specific Opacities
+            if (config.sectionOpacities) {
+                if (config.sectionOpacities.tagTime) { opacityTagTime.value = config.sectionOpacities.tagTime; dragTagTime.style.opacity = config.sectionOpacities.tagTime / 100; document.getElementById('opacityTagTimeVal').innerText = config.sectionOpacities.tagTime + '%'; }
+                if (config.sectionOpacities.dateLoc) { opacityDateLoc.value = config.sectionOpacities.dateLoc; dragDateLoc.style.opacity = config.sectionOpacities.dateLoc / 100; document.getElementById('opacityDateLocVal').innerText = config.sectionOpacities.dateLoc + '%'; }
+                if (config.sectionOpacities.verify) { opacityVerify.value = config.sectionOpacities.verify; dragVerify.style.opacity = config.sectionOpacities.verify / 100; document.getElementById('opacityVerifyVal').innerText = config.sectionOpacities.verify + '%'; }
+                if (config.sectionOpacities.watermark) { opacityWatermark.value = config.sectionOpacities.watermark; dragWatermark.style.opacity = config.sectionOpacities.watermark / 100; document.getElementById('opacityWatermarkVal').innerText = config.sectionOpacities.watermark + '%'; }
+                if (config.sectionOpacities.code) { opacityCode.value = config.sectionOpacities.code; dragCode.style.opacity = config.sectionOpacities.code / 100; document.getElementById('opacityCodeVal').innerText = config.sectionOpacities.code + '%'; }
+            }
+
+            // Apply Fonts & Sizes & Weights
+            if (config.fonts) {
+                if (config.fonts.tag) { fontTag.value = config.fonts.tag; tagTextVal.style.fontFamily = config.fonts.tag; }
+                if (config.fonts.time) { fontTime.value = config.fonts.time; timeTextVal.style.fontFamily = config.fonts.time; }
+                if (config.fonts.date) { fontDate.value = config.fonts.date; dateVal.style.fontFamily = config.fonts.date; }
+                if (config.fonts.loc) { fontLoc.value = config.fonts.loc; locationVal.style.fontFamily = config.fonts.loc; }
+                if (config.fonts.verify) { fontVerify.value = config.fonts.verify; verifyVal.style.fontFamily = config.fonts.verify; }
+                if (config.fonts.wmTitle) { fontWmTitle.value = config.fonts.wmTitle; wmTitleTime.style.fontFamily = config.fonts.wmTitle; wmTitleMark.style.fontFamily = config.fonts.wmTitle; }
+                if (config.fonts.wmSub) { fontWmSub.value = config.fonts.wmSub; wmSubtitleVal.style.fontFamily = config.fonts.wmSub; }
+                if (config.fonts.code) { fontCode.value = config.fonts.code; dragCode.style.fontFamily = config.fonts.code; }
+            }
+
+            if (config.sizes) {
+                if (config.sizes.tag) { sizeTag.value = config.sizes.tag; tagTextVal.style.fontSize = config.sizes.tag + 'px'; document.getElementById('sizeTagVal').innerText = config.sizes.tag + 'px'; }
+                if (config.sizes.time) { sizeTime.value = config.sizes.time; timeTextVal.style.fontSize = config.sizes.time + 'px'; document.getElementById('sizeTimeVal').innerText = config.sizes.time + 'px'; }
+                if (config.sizes.date) { sizeDate.value = config.sizes.date; dateVal.style.fontSize = config.sizes.date + 'px'; document.getElementById('sizeDateVal').innerText = config.sizes.date + 'px'; }
+                if (config.sizes.loc) { sizeLoc.value = config.sizes.loc; locationVal.style.fontSize = config.sizes.loc + 'px'; document.getElementById('sizeLocVal').innerText = config.sizes.loc + 'px'; }
+                if (config.sizes.verify) { sizeVerify.value = config.sizes.verify; verifyVal.style.fontSize = config.sizes.verify + 'px'; document.getElementById('sizeVerifyVal').innerText = config.sizes.verify + 'px'; }
+                if (config.sizes.wmTitle) { sizeWmTitle.value = config.sizes.wmTitle; wmTitleTime.style.fontSize = config.sizes.wmTitle + 'px'; wmTitleMark.style.fontSize = config.sizes.wmTitle + 'px'; document.getElementById('sizeWmTitleVal').innerText = config.sizes.wmTitle + 'px'; }
+                if (config.sizes.wmSub) { sizeWmSub.value = config.sizes.wmSub; wmSubtitleVal.style.fontSize = config.sizes.wmSub + 'px'; document.getElementById('sizeWmSubVal').innerText = config.sizes.wmSub + 'px'; }
+                if (config.sizes.code) { sizeCode.value = config.sizes.code; dragCode.style.fontSize = config.sizes.code + 'px'; document.getElementById('sizeCodeVal').innerText = config.sizes.code + 'px'; }
+            }
+
+            if (config.weights) {
+                if (config.weights.tag) { weightTag.value = config.weights.tag; tagTextVal.style.fontWeight = config.weights.tag; }
+                if (config.weights.time) { weightTime.value = config.weights.time; timeTextVal.style.fontWeight = config.weights.time; }
+                if (config.weights.date) { weightDate.value = config.weights.date; dateVal.style.fontWeight = config.weights.date; }
+                if (config.weights.loc) { weightLoc.value = config.weights.loc; locationVal.style.fontWeight = config.weights.loc; }
+                if (config.weights.verify) { weightVerify.value = config.weights.verify; verifyVal.style.fontWeight = config.weights.verify; }
+                if (config.weights.wmSub) { weightWmSub.value = config.weights.wmSub; wmSubtitleVal.style.fontWeight = config.weights.wmSub; }
+                if (config.weights.code) { weightCode.value = config.weights.code; dragCode.style.fontWeight = config.weights.code; }
+            }
+
+            if (config.colors) {
+                if (config.colors.tagBg) { colTagBg.value = config.colors.tagBg; tagBox.style.backgroundColor = config.colors.tagBg; document.getElementById('hexTagBg').innerText = config.colors.tagBg.toUpperCase(); }
+                if (config.colors.tagText) { colTagText.value = config.colors.tagText; tagTextVal.style.color = config.colors.tagText; document.getElementById('hexTagText').innerText = config.colors.tagText.toUpperCase(); }
+                if (config.colors.timeText) { colTimeText.value = config.colors.timeText; timeTextVal.style.color = config.colors.timeText; document.getElementById('hexTimeText').innerText = config.colors.timeText.toUpperCase(); }
+                if (config.colors.unifiedBar) { colUnifiedBar.value = config.colors.unifiedBar; unifiedBar.style.backgroundColor = config.colors.unifiedBar; document.getElementById('hexUnifiedBar').innerText = config.colors.unifiedBar.toUpperCase(); }
+                if (config.colors.dateText) { colDateText.value = config.colors.dateText; dateVal.style.color = config.colors.dateText; document.getElementById('hexDateText').innerText = config.colors.dateText.toUpperCase(); }
+                if (config.colors.locText) { colLocText.value = config.colors.locText; locationVal.style.color = config.colors.locText; document.getElementById('hexLocText').innerText = config.colors.locText.toUpperCase(); }
+                if (config.colors.shieldCheck) { colShieldCheck.value = config.colors.shieldCheck; document.getElementById('hexShieldCheck').innerText = config.colors.shieldCheck.toUpperCase(); renderShieldIcon(); }
+                if (config.colors.verifyText) { colVerifyText.value = config.colors.verifyText; verifyVal.style.color = config.colors.verifyText; document.getElementById('hexVerifyText').innerText = config.colors.verifyText.toUpperCase(); }
+                if (config.colors.wmTime) { colWmTime.value = config.colors.wmTime; wmTitleTime.style.color = config.colors.wmTime; document.getElementById('hexWmTime').innerText = config.colors.wmTime.toUpperCase(); }
+                if (config.colors.wmMark) { colWmMark.value = config.colors.wmMark; wmTitleMark.style.color = config.colors.wmMark; document.getElementById('hexWmMark').innerText = config.colors.wmMark.toUpperCase(); }
+                if (config.colors.codeText) { colCodeText.value = config.colors.codeText; dragCode.style.color = config.colors.codeText; document.getElementById('hexCodeText').innerText = config.colors.codeText.toUpperCase(); }
+            }
+        }
+
+        function saveCurrentPreset() {
+            const presetName = prompt('กรอกชื่อเทมเพลตสำหรับบันทึกตำแหน่ง:', `เทมเพลตมุมซ้ายล่าง ${new Date().toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'})}`);
+            if (!presetName) return;
+
+            const savedPresets = JSON.parse(localStorage.getItem('tm_presets') || '{}');
+            savedPresets[presetName] = getLayoutConfig();
+            localStorage.setItem('tm_presets', JSON.stringify(savedPresets));
+
+            updatePresetDropdown();
+            document.getElementById('presetSelect').value = presetName;
+            alert(`บันทึกเทมเพลต "${presetName}" เรียบร้อยแล้ว!`);
+        }
+
+        function updatePresetDropdown() {
+            const presetSelect = document.getElementById('presetSelect');
+            presetSelect.innerHTML = '<option value="default">-- เทมเพลตมาตรฐาน (Default) --</option>';
+            
+            const savedPresets = JSON.parse(localStorage.getItem('tm_presets') || '{}');
+            Object.keys(savedPresets).forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = name;
+                opt.innerText = name;
+                presetSelect.appendChild(opt);
+            });
+        }
+
+        function loadSelectedPreset() {
+            const val = document.getElementById('presetSelect').value;
+            if (val === 'default') {
+                resetPositions();
+                return;
+            }
+            const savedPresets = JSON.parse(localStorage.getItem('tm_presets') || '{}');
+            if (savedPresets[val]) {
+                applyLayoutConfig(savedPresets[val]);
+            }
+        }
+
+        function deleteSelectedPreset() {
+            const val = document.getElementById('presetSelect').value;
+            if (val === 'default') {
+                alert('ไม่สามารถลบเทมเพลตเริ่มต้นได้');
+                return;
+            }
+            if (confirm(`คุณต้องการลบเทมเพลต "${val}" ใช่หรือไม่?`)) {
+                const savedPresets = JSON.parse(localStorage.getItem('tm_presets') || '{}');
+                delete savedPresets[val];
+                localStorage.setItem('tm_presets', JSON.stringify(savedPresets));
+                updatePresetDropdown();
+                resetPositions();
+            }
+        }
+
+        function exportPresetJSON() {
+            const config = getLayoutConfig();
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(config, null, 2));
+            const dlAnchorElem = document.createElement('a');
+            dlAnchorElem.setAttribute("href", dataStr);
+            dlAnchorElem.setAttribute("download", `Timemark_Preset_${Date.now()}.json`);
+            dlAnchorElem.click();
+        }
+
+        function triggerImportPresetJSON() {
+            document.getElementById('presetFileInput').click();
+        }
+
+        function importPresetJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const config = JSON.parse(e.target.result);
+                    applyLayoutConfig(config);
+                    alert('นำเข้าไฟล์ตั้งค่าเรียบร้อยแล้ว!');
+                } catch(err) {
+                    alert('ไฟล์ JSON ไม่ถูกต้อง');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // --- CUSTOM LOGO / ICON OVERLAY MODULE (WITH ROTATION & TRANSPARENCY) ---
+        function triggerCustomLogoUpload() {
+            document.getElementById('customLogoInput').click();
+        }
+
+        function handleCustomLogoUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                const logoObj = {
+                    id: 'custom_logo_' + Date.now(),
+                    src: ev.target.result,
+                    left: 20,
+                    top: 20,
+                    scale: 100,
+                    rotation: 0,
+                    opacity: 100
+                };
+                customOverlays.push(logoObj);
+                renderCustomOverlaysUI();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function renderCustomOverlaysUI() {
+            const listContainer = document.getElementById('customLogosList');
+            const overlaysContainer = document.getElementById('customOverlaysContainer');
+            
+            listContainer.innerHTML = '';
+            overlaysContainer.innerHTML = '';
+
+            if (customOverlays.length === 0) {
+                listContainer.innerHTML = `<p class="text-[11px] text-slate-500 italic">ยังไม่มีรูปภาพแทรกเพิ่มเติม (กด "+ แทรกรูปภาพ" เพื่อเพิ่มโลโก้/ไอคอนบนภาพ)</p>`;
+                return;
+            }
+
+            customOverlays.forEach((item, index) => {
+                // 1. Create Element on Viewport
+                const div = document.createElement('div');
+                div.id = item.id;
+                div.className = 'draggable-item absolute z-20 pointer-events-auto origin-center';
+                div.style.left = item.left + '%';
+                div.style.top = item.top + '%';
+                div.style.width = (60 * (item.scale / 100)) + 'px';
+                div.style.transform = `rotate(${item.rotation}deg)`;
+                div.style.opacity = item.opacity / 100;
+
+                const img = document.createElement('img');
+                img.src = item.src;
+                img.className = 'w-full h-auto block pointer-events-none drop-shadow-md';
+                div.appendChild(img);
+                overlaysContainer.appendChild(div);
+
+                makeDraggable(div);
+
+                // 2. Create Control Row in Control Panel
+                const itemControl = document.createElement('div');
+                itemControl.className = 'bg-slate-900 border border-slate-800 p-2.5 rounded flex flex-col space-y-2 text-[11px]';
+                itemControl.innerHTML = `
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-1">
+                        <span class="font-bold text-amber-300">รูปภาพเพิ่มเติม #${index + 1}</span>
+                        <button onclick="removeCustomOverlay('${item.id}')" class="text-red-400 hover:underline">ลบรูปนี้</button>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div>
+                            <span class="text-slate-400 block mb-0.5">ขนาดย่อ/ขยาย (${item.scale}%)</span>
+                            <input type="range" min="30" max="250" value="${item.scale}" oninput="updateCustomOverlayScale('${item.id}', this.value)" class="w-full accent-amber-400">
+                        </div>
+                        <div>
+                            <span class="text-slate-400 block mb-0.5">มุมหมุน (${item.rotation}°)</span>
+                            <input type="range" min="0" max="360" value="${item.rotation}" oninput="updateCustomOverlayRotation('${item.id}', this.value)" class="w-full accent-amber-400">
+                        </div>
+                        <div>
+                            <span class="text-slate-400 block mb-0.5">โปร่งแสง (${item.opacity}%)</span>
+                            <input type="range" min="0" max="100" value="${item.opacity}" oninput="updateCustomOverlayOpacity('${item.id}', this.value)" class="w-full accent-amber-400">
+                        </div>
+                    </div>
+                `;
+                listContainer.appendChild(itemControl);
+            });
+        }
+
+        function updateCustomOverlayScale(id, val) {
+            const item = customOverlays.find(o => o.id === id);
+            if (item) {
+                item.scale = parseInt(val);
+                const elem = document.getElementById(id);
+                if (elem) elem.style.width = (60 * (item.scale / 100)) + 'px';
+            }
+        }
+
+        function updateCustomOverlayRotation(id, val) {
+            const item = customOverlays.find(o => o.id === id);
+            if (item) {
+                item.rotation = parseInt(val);
+                const elem = document.getElementById(id);
+                if (elem) elem.style.transform = `rotate(${item.rotation}deg)`;
+            }
+        }
+
+        function updateCustomOverlayOpacity(id, val) {
+            const item = customOverlays.find(o => o.id === id);
+            if (item) {
+                item.opacity = parseInt(val);
+                const elem = document.getElementById(id);
+                if (elem) elem.style.opacity = item.opacity / 100;
+            }
+        }
+
+        function removeCustomOverlay(id) {
+            customOverlays = customOverlays.filter(o => o.id !== id);
+            renderCustomOverlaysUI();
+        }
+
+        // Main Source Image Upload Handler
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    sourceImg.src = ev.target.result;
+                    sourceImg.onload = updateImageResolutionBadge;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function updateImageResolutionBadge() {
+            const w = sourceImg.naturalWidth || 1080;
+            const h = sourceImg.naturalHeight || 1440;
+            resolutionBadge.innerText = `${w} x ${h} px`;
+        }
+
+        // Helper function for rounded rectangles on Canvas
+        function drawRoundedRect(ctx, x, y, width, height, radius) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+        }
+
+        // High-Res Native Canvas HD Export Engine
+        function exportHighResImage() {
+            const canvas = document.getElementById('exportCanvas');
+            const ctx = canvas.getContext('2d');
+
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.src = sourceImg.src;
+
+            img.onload = function() {
+                const imgW = img.naturalWidth || 1080;
+                const imgH = img.naturalHeight || 1440;
+
+                canvas.width = imgW;
+                canvas.height = imgH;
+
+                // 1. Draw Background Photo
+                ctx.drawImage(img, 0, 0, imgW, imgH);
+
+                const viewportRect = viewport.getBoundingClientRect();
+                const scaleFactor = imgW / viewportRect.width;
+                const userScale = (parseInt(sliderScale.value) / 100);
+                const globalScale = scaleFactor * userScale;
+
+                const globalOpacity = parseFloat(sliderOpacity.value) / 100;
+
+                function getRelativePos(elem) {
+                    const eRect = elem.getBoundingClientRect();
+                    return {
+                        x: (eRect.left - viewportRect.left) * scaleFactor,
+                        y: (eRect.top - viewportRect.top) * scaleFactor,
+                        w: eRect.width * scaleFactor,
+                        h: eRect.height * scaleFactor
+                    };
+                }
+
+                // A. Tag & Time (Exact Capsule Badge + Yellow Inner Tag + Security Hatch Texture)
+                if (document.getElementById('chkTagTime').checked) {
+                    ctx.save();
+                    ctx.globalAlpha = globalOpacity * (parseInt(opacityTagTime.value) / 100);
+
+                    const pos = getRelativePos(dragTagTime);
+                    const tagTxt = inTag.value || 'เช็กอิน';
+                    const timeTxt = inTime.value || '12:09';
+
+                    const tagFont = fontTag.value;
+                    const timeFont = fontTime.value;
+                    const tagSz = parseInt(sizeTag.value);
+                    const timeSz = parseInt(sizeTime.value);
+                    const tagWVal = weightTag.value;
+                    const timeWVal = weightTime.value;
+
+                    ctx.font = `${tagWVal} ${Math.round(tagSz * globalScale)}px "${tagFont}", sans-serif`;
+                    const tagTextMetrics = ctx.measureText(tagTxt);
+                    const tagTextW = tagTextMetrics.width + (18 * globalScale);
+
+                    ctx.font = `${timeWVal} ${Math.round(timeSz * globalScale)}px "${timeFont}", sans-serif`;
+                    const timeTextMetrics = ctx.measureText(timeTxt);
+                    const timeTextW = timeTextMetrics.width + (20 * globalScale);
+
+                    const pad = 3 * globalScale;
+                    const innerTagH = (tagSz + 12) * globalScale;
+                    const pillH = innerTagH + (pad * 2);
+                    const totalPillW = tagTextW + timeTextW + (pad * 2) + (6 * globalScale);
+                    
+                    const outerRadius = parseInt(sizePillRadius.value) * globalScale;
+                    const innerRadius = parseInt(sizeTagRadius.value) * globalScale;
+
+                    // 1. Outer White Capsule Base
+                    ctx.save();
+                    drawRoundedRect(ctx, pos.x, pos.y, totalPillW, pillH, outerRadius);
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fill();
+
+                    // 2. Security Hatch Lines Pattern (Diagonal pale blue stripes)
+                    ctx.clip();
+                    ctx.strokeStyle = 'rgba(180, 205, 235, 0.45)';
+                    ctx.lineWidth = 1.5 * globalScale;
+                    const stripeGap = 6 * globalScale;
+                    for (let lx = -pillH; lx < totalPillW + pillH; lx += stripeGap) {
+                        ctx.beginPath();
+                        ctx.moveTo(pos.x + lx, pos.y + pillH);
+                        ctx.lineTo(pos.x + lx + pillH, pos.y);
+                        ctx.stroke();
+                    }
+                    ctx.restore();
+
+                    // 3. Inner Yellow Tag Box
+                    const innerTagX = pos.x + pad;
+                    const innerTagY = pos.y + pad;
+
+                    ctx.fillStyle = colTagBg.value;
+                    drawRoundedRect(ctx, innerTagX, innerTagY, tagTextW, innerTagH, innerRadius);
+                    ctx.fill();
+
+                    // Tag Text ("เช็กอิน")
+                    ctx.fillStyle = colTagText.value;
+                    ctx.font = `${tagWVal} ${Math.round(tagSz * globalScale)}px "${tagFont}", sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(tagTxt, innerTagX + (tagTextW / 2), innerTagY + (innerTagH / 2) + (1 * globalScale));
+
+                    // Time Text ("12:09")
+                    ctx.fillStyle = colTimeText.value;
+                    ctx.font = `${timeWVal} ${Math.round(timeSz * globalScale)}px "${timeFont}", sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(timeTxt, innerTagX + tagTextW + (timeTextW / 2) + (2 * globalScale), pos.y + (pillH / 2) + (1 * globalScale));
+
+                    // Reset alignment
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'alphabetic';
+                    ctx.restore();
+                }
+
+                // Config Stamp Drop Shadows
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.95)';
+                ctx.shadowBlur = 5 * globalScale;
+                ctx.shadowOffsetY = 2 * globalScale;
+
+                // B. Unified Date & Location Block (Continuous Amber Vertical Bar)
+                if (document.getElementById('chkDateLoc').checked) {
+                    ctx.save();
+                    ctx.globalAlpha = globalOpacity * (parseInt(opacityDateLoc.value) / 100);
+
+                    const pos = getRelativePos(dragDateLoc);
+                    
+                    const dateTxt = inDate.value || '';
+                    const locTxt = inLocation.value || '';
+
+                    const fDate = fontDate.value;
+                    const fLoc = fontLoc.value;
+                    const sDate = parseInt(sizeDate.value);
+                    const sLoc = parseInt(sizeLoc.value);
+                    const wDateVal = weightDate.value;
+                    const wLocVal = weightLoc.value;
+
+                    // 1. Continuous Amber Bar
+                    ctx.shadowColor = 'transparent';
+                    ctx.fillStyle = colUnifiedBar.value;
+                    const barWidth = 3.5 * globalScale;
+                    const barHeight = pos.h;
+                    
+                    drawRoundedRect(ctx, pos.x, pos.y, barWidth, barHeight, barWidth / 2);
+                    ctx.fill();
+
+                    // 2. Date Text
+                    ctx.shadowColor = 'rgba(0, 0, 0, 0.95)';
+                    ctx.fillStyle = colDateText.value;
+                    ctx.font = `${wDateVal} ${Math.round(sDate * globalScale)}px "${fDate}", sans-serif`;
+                    ctx.fillText(dateTxt, pos.x + (10 * globalScale), pos.y + (sDate * 1.1 * globalScale));
+
+                    // 3. Location Text
+                    ctx.fillStyle = colLocText.value;
+                    ctx.font = `${wLocVal} ${Math.round(sLoc * globalScale)}px "${fLoc}", sans-serif`;
+                    ctx.fillText(locTxt, pos.x + (10 * globalScale), pos.y + (sDate * 1.1 * globalScale) + (sLoc * 1.3 * globalScale));
+                    ctx.restore();
+                }
+
+                // C. Verified Badge
+                if (document.getElementById('chkVerify').checked) {
+                    ctx.save();
+                    ctx.globalAlpha = globalOpacity * (parseInt(opacityVerify.value) / 100);
+
+                    const pos = getRelativePos(dragVerify);
+
+                    const sRadius = 9 * globalScale;
+                    const sCenterX = pos.x + sRadius;
+                    const sCenterY = pos.y + (10 * globalScale);
+
+                    ctx.shadowColor = 'transparent';
+                    ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
+                    ctx.beginPath();
+                    ctx.arc(sCenterX, sCenterY, sRadius, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+                    ctx.lineWidth = 1.5 * globalScale;
+                    ctx.stroke();
+
+                    // Checkmark
+                    ctx.strokeStyle = colShieldCheck.value;
+                    ctx.lineWidth = 2.5 * globalScale;
+                    ctx.beginPath();
+                    ctx.moveTo(sCenterX - (4 * globalScale), sCenterY);
+                    ctx.lineTo(sCenterX - (1 * globalScale), sCenterY + (3 * globalScale));
+                    ctx.lineTo(sCenterX + (4 * globalScale), sCenterY - (3 * globalScale));
+                    ctx.stroke();
+
+                    // Text
+                    ctx.shadowColor = 'rgba(0, 0, 0, 0.95)';
+                    ctx.fillStyle = colVerifyText.value;
+                    const sVer = parseInt(sizeVerify.value);
+                    ctx.font = `${weightVerify.value} ${Math.round(sVer * globalScale)}px "${fontVerify.value}", sans-serif`;
+                    ctx.fillText(inVerify.value || '', pos.x + (22 * globalScale), pos.y + (sVer * 1.2 * globalScale));
+                    ctx.restore();
+                }
+
+                // D. Bottom Right Watermark ("Time" + "mark" separate colors!)
+                if (document.getElementById('chkWatermark').checked) {
+                    ctx.save();
+                    ctx.globalAlpha = globalOpacity * (parseInt(opacityWatermark.value) / 100);
+
+                    const pos = getRelativePos(dragWatermark);
+                    const wTime = inWmTime.value || 'Time';
+                    const wMark = inWmMark.value || 'mark';
+                    const subText = inWmSubtitle.value || '';
+
+                    const sWmTitle = parseInt(sizeWmTitle.value);
+                    const sWmSub = parseInt(sizeWmSub.value);
+
+                    ctx.font = `700 ${Math.round(sWmTitle * globalScale)}px "${fontWmTitle.value}", sans-serif`;
+                    const timeW = ctx.measureText(wTime).width;
+
+                    // Time (Yellow/Amber)
+                    ctx.fillStyle = colWmTime.value;
+                    ctx.fillText(wTime, pos.x, pos.y + (sWmTitle * 1.1 * globalScale));
+
+                    // mark (White)
+                    ctx.fillStyle = colWmMark.value;
+                    ctx.fillText(wMark, pos.x + timeW, pos.y + (sWmTitle * 1.1 * globalScale));
+
+                    // Subtitle
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = `${weightWmSub.value} ${Math.round(sWmSub * globalScale)}px "${fontWmSub.value}", sans-serif`;
+                    ctx.fillText(subText, pos.x, pos.y + (sWmTitle * 1.1 * globalScale) + (sWmSub * 1.3 * globalScale));
+                    ctx.restore();
+                }
+
+                // E. Vertical Side Serial
+                if (document.getElementById('chkCode').checked) {
+                    ctx.save();
+                    ctx.globalAlpha = globalOpacity * (parseInt(opacityCode.value) / 100);
+
+                    const pos = getRelativePos(dragCode);
+                    const codeText = (inCode.value || '2P14YAH3CDBEMH').toUpperCase();
+                    const fullCode = `© ${codeText} Timemark Verified`;
+
+                    ctx.translate(pos.x + (pos.w / 2), pos.y + (pos.h / 2));
+                    ctx.rotate(-Math.PI / 2);
+
+                    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+                    ctx.fillStyle = colCodeText.value;
+                    const sCode = parseInt(sizeCode.value);
+                    ctx.font = `${weightCode.value} ${Math.round(sCode * globalScale)}px "${fontCode.value}", monospace`;
+                    ctx.textAlign = 'center';
+                    ctx.fillText(fullCode, 0, 0);
+                    ctx.restore();
+                }
+
+                // F. Custom Extra Uploaded Overlays (With Rotation Support)
+                customOverlays.forEach(item => {
+                    const elem = document.getElementById(item.id);
+                    if (elem) {
+                        ctx.save();
+                        const pos = getRelativePos(elem);
+                        const cImg = new Image();
+                        cImg.src = item.src;
+                        
+                        ctx.globalAlpha = (item.opacity / 100) * globalOpacity;
+
+                        // Rotate around image center
+                        const centerX = pos.x + (pos.w / 2);
+                        const centerY = pos.y + (pos.h / 2);
+
+                        ctx.translate(centerX, centerY);
+                        ctx.rotate((item.rotation * Math.PI) / 180);
+                        ctx.drawImage(cImg, -pos.w / 2, -pos.h / 2, pos.w, pos.h);
+                        ctx.restore();
+                    }
+                });
+
+                // Download File
+                const link = document.createElement('a');
+                link.download = `Timemark_Photo_${Date.now()}.png`;
+                link.href = canvas.toDataURL('image/png', 1.0);
+                link.click();
+            };
+        }
+
+        // Initialize Canvas Shield, Preset Dropdown & Resolution
+        window.addEventListener('load', () => {
+            renderShieldIcon();
+            updatePresetDropdown();
+            updateImageResolutionBadge();
+        });
+    </script>
+</body>
+</html>
